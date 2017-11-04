@@ -7,46 +7,88 @@ var rayNode
 export var moveSpeed = 200
 var xRay = 0
 var yRay = 1
+var world
+export var canMove = true
+var moving = false
+var canInteract = true
+var resultUp
+var resultDown
+var resultLeft
+var resultRight
+
+
+
+var isFacing = "up"
+
 func _ready():
 	set_fixed_process(true)
 	rayNode = get_node("RayCast2D")
+	world = get_world_2d().get_direct_space_state()
 	# Called every time the node is added to the scene.
 	# Initialization here
 	pass
 func _fixed_process(delta):
 	movement(delta)
 	set_process_input(true)
+	if !moving and canMove:
+		#print("checking result")
+		 resultUp = world.intersect_point(get_pos() + Vector2(0, -40))
+		 resultDown = world.intersect_point(get_pos() + Vector2(0, 40))
+		 resultLeft = world.intersect_point(get_pos() + Vector2(-40, 0))
+		 resultRight = world.intersect_point(get_pos() + Vector2(40, 0))
+	interact(delta)
 func movement(delta):
 	var motion = Vector2()
-	if (Input.is_action_pressed("ui_up")):
-		motion += Vector2(0, -1)
-		rayNode.set_rotd(180)
-		xRay = 0
-		yRay = 1
-	elif (Input.is_action_pressed("ui_down")):
-		motion += Vector2(0, 1)
-		rayNode.set_rotd(0)
-		xRay = 0
-		yRay = -1
-	elif (Input.is_action_pressed("ui_left")):
-		motion += Vector2(-1, 0)
-		rayNode.set_rotd(270)
-		xRay = -1
-		yRay = 0
-	elif (Input.is_action_pressed("ui_right")):
-		motion += Vector2(1, 0)
-		rayNode.set_rotd(90)
-		xRay = 1
-		yRay = 0
-	motion = motion.normalized()*moveSpeed*delta
-	move(motion)
-func _input(event):
-	if(event.is_action_pressed("ui_accept")):
-		var space_state = get_world_2d().get_direct_space_state()
-		var result = space_state.intersect_ray( get_global_pos(), Vector2(get_global_pos().x + 200*xRay,get_global_pos().y + 200*yRay), [self] )
-		if (not result.empty()):
-			if(result.collider.isTalkable == 1):
-				get_node("Camera2D/Polygon2D/RichTextLabel").set_opacity(.5)
-				#result.collider._ready()
-				result.collider._input("ui_accept")
-			
+	if(canMove):
+		if (Input.is_action_pressed("ui_up")):
+			motion += Vector2(0, -1)
+			rayNode.set_rotd(180)
+			xRay = 0
+			yRay = 1
+			moving = true
+			isFacing = "up"
+		elif (Input.is_action_pressed("ui_down")):
+			motion += Vector2(0, 1)
+			rayNode.set_rotd(0)
+			xRay = 0
+			yRay = -1
+			moving = true
+			isFacing = "down"
+		elif (Input.is_action_pressed("ui_left")):
+			motion += Vector2(-1, 0)
+			rayNode.set_rotd(270)
+			xRay = -1
+			yRay = 0
+			moving = true
+			isFacing = "left"
+		elif (Input.is_action_pressed("ui_right")):
+			motion += Vector2(1, 0)
+			rayNode.set_rotd(90)
+			xRay = 1
+			yRay = 0
+			moving = true
+			isFacing = "right"
+		else:
+			moving = false
+			canInteract = true
+		motion = motion.normalized()*moveSpeed*delta
+		move(motion)
+		if(moving == true):
+			canInteract = false
+
+func interact(delta):
+	if(Input.is_action_pressed("ui_interact")):
+		if(isFacing == "up"):
+			interaction(resultUp)
+		elif(isFacing == "down"):
+			interaction(resultDown)
+		elif(isFacing == "left"):
+			interaction(resultLeft)
+		elif(isFacing == "right"):
+			interaction(resultRight)
+func interaction(result):
+	print(result)
+	for dictionary in result:
+		if(typeof(dictionary.collider) == TYPE_OBJECT and dictionary.collider.has_node("Interact")):
+			get_node("Camera2D/Dialogue").set_hidden(false)
+			get_node("Camera2D/Dialogue")._print("FFFFFFFFFFFFFFFFFFFFFF")
